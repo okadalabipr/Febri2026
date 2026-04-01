@@ -30,7 +30,9 @@ go_cc <- msigdbr(
   collection = "C5",
   subcollection = "GO:BP"
 ) %>%
-  filter(str_detect(gs_name, "CELL_CYCLE"))
+  filter(grepl("CELL_CYCLE", gs_name, ignore.case = TRUE)) %>%
+  select((gs_name, gene_symbol)) %>%
+  distinct()
 
 genes_cc <- intersect(unique(go_cc$gene_symbol), rownames(expr_data))
 
@@ -70,7 +72,7 @@ fano_df <- fano_df %>%
   )
 
 # Summary
-boot_ci <- function(x, B = 1000) {
+boot_ci <- function(x, B = 1000, conf = 0.95) {
   meds <- replicate(B, median(sample(x, replace = TRUE)))
   tibble(
     med = median(x),
