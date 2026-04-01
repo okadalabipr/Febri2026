@@ -1,0 +1,16 @@
+# R files
+.Rhistory
+.RData
+.Rproj.user/
+
+# Data files (IMPORTANT)
+*.rds
+*.fastq.gz
+*.bam
+*.mtx
+
+# Mac
+.DS_Store
+
+# Output folders (optional)
+results/
