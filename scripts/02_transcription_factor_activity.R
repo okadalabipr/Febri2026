@@ -41,13 +41,13 @@ acts <- run_ulm(
 )
 
 # Store TF activity in Seurat object
-tf_mat <- acts %>%
-  pivot_wider(id_cols = "source",
-              names_from = "condition",
-              values_from = "score") %>%
-  column_to_rownames("source")
+seurat_obj[["tfsulm"]] <- acts %>%
+  tidyr::pivot_wider(id_cols = "source",
+                     names_from = "condition",
+                     values_from = "score") %>%
+  tibble::column_to_rownames("source") %>%
+  Seurat::CreateAssayObject(.)
 
-seurat_obj[["tfsulm"]] <- CreateAssayObject(tf_mat)
 DefaultAssay(seurat_obj) <- "tfsulm"
 
 seurat_obj <- ScaleData(seurat_obj)
@@ -55,12 +55,12 @@ seurat_obj <- ScaleData(seurat_obj)
 # Aggregate TF activity per condition
 df <- t(as.matrix(seurat_obj@assays$tfsulm@data)) %>%
   as.data.frame() %>%
-  mutate(condition = seurat_obj$orig.ident) %>%
-  pivot_longer(cols = -condition,
+  mutate(cluster = seurat_obj$orig.ident) %>%
+  pivot_longer(cols = -cluster,
                names_to = "TF",
                values_to = "score") %>%
-  group_by(condition, TF) %>%
-  summarise(mean = mean(score), .groups = "drop")
+  group_by(cluster, source) %>%
+  summarise(mean = mean(score))
 
 # Select TFs of interest
 selected_tfs <- c("E2F1","E2F2","E2F3","MYC","FOXM1","RB1","TFDP1",
@@ -68,26 +68,31 @@ selected_tfs <- c("E2F1","E2F2","E2F3","MYC","FOXM1","RB1","TFDP1",
                   "SMAD3","NFKB1")
 
 df_filtered <- df %>%
-  filter(TF %in% selected_tfs)
+  filter(source %in% selected_tfs)
 
 # Heatmap visualization
 tf_matrix <- df_filtered %>%
-  pivot_wider(id_cols = condition,
-              names_from = TF,
+  pivot_wider(id_cols = cluster,
+              names_from = source,
               values_from = mean) %>%
-  column_to_rownames("condition") %>%
+  column_to_rownames("cluster") %>%
   as.matrix()
 
 # Order conditions
 order <- c("Control_0h","EGF_4h","EGF_8h","EGF_16h",
            "HRG_4h","HRG_8h","HRG_16h")
 
-tf_matrix <- tf_matrix[order, ]
+tf_matrix <- tf_matrix[order, , drop = FALSE]
 tf_matrix <- t(tf_matrix)
 
 pheatmap(
-  tf_matrix,
+  mat = tf_matrix,
   color = viridis(100),
+  border_color = "white",
+  cellwidth = 15,
+  cellheight = 15,
+  treeheight_row = 0,
+  treeheight_col = 20,
   cluster_rows = TRUE,
   cluster_cols = FALSE
 )
@@ -99,7 +104,7 @@ tf_scores <- t(as.matrix(seurat_obj@assays$tfsulm@data)) %>%
   rownames_to_column("cell")
 
 tf_scores_long <- tf_scores %>%
-  pivot_longer(cols = "SP1", names_to = "TF", values_to = "score")
+  pivot_longer(cols = "gene names", names_to = "TF", values_to = "score")
 
 tf_scores_long <- tf_scores_long %>%
   mutate(
