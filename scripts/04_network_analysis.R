@@ -37,7 +37,7 @@ edges <- tribble(
 g <- graph_from_data_frame(edges, directed = TRUE)
 
 # Select timepoint
-timepoint_use <- 8
+timepoint_use <- 8 #4, 16
 
 # Prepare node attributes
 safe_log <- function(x, eps = 1e-6) log10(x + eps)
